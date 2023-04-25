@@ -102,7 +102,9 @@ fn parse_dependency<R: Read>(output: BufReader<R>) -> Result<Vec<PathBuf>> {
             }
         }
     }
-    assert_ne!(result.len(), 0);
+    if result.is_empty() {
+        warn!("No dependency found");
+    }
     return Ok(result);
 }
 
@@ -119,31 +121,19 @@ fn dump_dependency(command: &CompileCommand) -> Result<Vec<PathBuf>> {
 
     #[derive(Debug)]
     struct ReplaceTargetOption {
-        c: Option<usize>,
         o: Option<usize>,
     }
     let replace_target_option: ReplaceTargetOption = (|args: &Vec<String>| -> ReplaceTargetOption {
         let o = args.iter().position(|v| v == &String::from("-o"));
-        match args.iter().position(|v| v == &String::from("-c")) {
-            Some(c) => ReplaceTargetOption { c: Some(c), o },
-            None => ReplaceTargetOption { c: None, o },
-        }
+        ReplaceTargetOption { o }
     })(&args);
     trace!(
         "dump_dependency: replace_target_option={:?}",
         replace_target_option
     );
-    #[allow(non_snake_case)]
-    let option_E = String::from("-E");
-    if let Some(c) = replace_target_option.c {
-        args[c] = option_E.clone();
-    }
     if let Some(o) = replace_target_option.o {
         args.remove(o + 1);
         args.remove(o);
-    }
-    if replace_target_option.c.is_none() {
-        args.push(option_E);
     }
 
     args.insert(1, String::from("-M"));
